@@ -10,7 +10,7 @@ Tests if idle TCP connections are timed out.
 
 ### Windows 64 bit
 
-    GOOS=windows GOARCH=amd64 go build -o idle-tester client.go
+    GOOS=windows GOARCH=amd64 go build -o idle-tester.exe client.go
 
 ### Mac 64 bit
 
