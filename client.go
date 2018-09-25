@@ -49,6 +49,72 @@ func printFailure() {
 	log.Println("")
 }
 
+func pretest(conn net.Conn, reader *bufio.Reader) {
+	msg := []byte("A")
+	_, err := conn.Write(msg)
+	if err != nil {
+		log.Println("Error when pre-testing connection:", err)
+		conn.Close()
+		quit(1)
+	}
+
+	b, err := reader.ReadByte()
+	if err == io.EOF {
+		log.Println("Error when pre-testing connection: server closed connection")
+		conn.Close()
+		quit(1)
+	}
+	if err != nil {
+		log.Println("Error when pre-testing connection:", err)
+		conn.Close()
+		quit(1)
+	}
+	if b == 65 {
+		log.Println("Connection established and tested.")
+	}
+}
+
+func test(conn net.Conn, reader *bufio.Reader) {
+	log.Printf("Idling %d minute(s) before testing connection again, please wait...\n", *duration)
+
+	time.Sleep(time.Duration(*duration) * time.Minute)
+
+	// idle for extra 10 seconds just to make sure
+	time.Sleep(10 * time.Second)
+
+	log.Println("Sending message and waiting for response...")
+
+	// set a deadline so we don't have to wait for minutes
+	deadline := 15 * time.Second
+	conn.SetDeadline(time.Now().Add(deadline))
+
+	msg := []byte("B")
+	_, err := conn.Write(msg)
+	if err != nil {
+		printFailure()
+		log.Println("Connection error:", err)
+		quit(1)
+	}
+
+	for {
+		b, err := reader.ReadByte()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			printFailure()
+			log.Println("Connection error:", err)
+			quit(1)
+		}
+		if b == 66 {
+			printSuccess()
+		} else {
+			log.Println("Response was", b)
+		}
+
+	}
+}
+
 func main() {
 	flag.Parse()
 	log.SetFlags(0)
@@ -63,46 +129,11 @@ func main() {
 		quit(1)
 	}
 
-	log.Println("Connection established.")
+	reader := bufio.NewReader(conn)
 
-	response := bufio.NewReader(conn)
+	pretest(conn, reader)
+	test(conn, reader)
 
-	log.Printf("Idling %d minutes before testing connection, please wait...\n", *duration)
-
-	time.Sleep(time.Duration(*duration) * time.Minute)
-
-	// idle for extra 10 seconds just to make sure
-	time.Sleep(10 * time.Second)
-
-	log.Println("Sending message and waiting for response...")
-
-	// set a deadline so we don't have to wait too much
-	deadline := 3 * time.Second
-	conn.SetDeadline(time.Now().Add(deadline))
-
-	msg := []byte("A")
-	_, err = conn.Write(msg)
-	if err != nil {
-		printFailure()
-		log.Println("Connection error:", err)
-		quit(1)
-	}
-
-	for {
-		b, err := response.ReadByte()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			printFailure()
-			log.Println("Connection error:", err)
-			quit(1)
-		}
-		if b == 65 {
-			printSuccess()
-		}
-
-	}
 	conn.Close()
 	quit(0)
 }

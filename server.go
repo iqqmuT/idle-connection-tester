@@ -12,17 +12,21 @@ var addr = flag.String("addr", "localhost:9999", "service address")
 
 func echo(conn net.Conn) {
 	defer conn.Close()
-	r := bufio.NewReader(conn)
-	b, err := r.ReadByte()
-	if err == io.EOF {
-		return
+	// read & write twice per connection
+	for i := 0; i < 2; i++ {
+		r := bufio.NewReader(conn)
+		b, err := r.ReadByte()
+		if err == io.EOF {
+			return
+		}
+		if err != nil {
+			log.Println("ERROR", err)
+		}
+		log.Println("Received:", b)
+		resp := make([]byte, 1)
+		resp[0] = b
+		conn.Write(resp)
 	}
-	if err != nil {
-		log.Println("ERROR", err)
-	}
-	resp := make([]byte, 1)
-	resp[0] = b
-	conn.Write(resp)
 }
 
 func main() {
