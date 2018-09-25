@@ -69,7 +69,7 @@ func main() {
 
 	log.Printf("Idling %d minutes before testing connection, please wait...\n", *duration)
 
-	time.Sleep(time.Duration(*duration) * time.Second)
+	time.Sleep(time.Duration(*duration) * time.Minute)
 
 	// idle for extra 10 seconds just to make sure
 	time.Sleep(10 * time.Second)
